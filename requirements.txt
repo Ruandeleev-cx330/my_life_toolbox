@@ -1,0 +1,11 @@
+# My Life Toolbox - 依赖清单
+# 版本严格锁定，禁止随意升级（见 CLAUDE.me §1.2）
+nicegui==1.4.30
+pystray==0.19.0
+pillow==11.1.0    # 原 10.3.0 → 11.1.0，因 Python 3.13 需要 Pillow ≥ 11.0.0
+sqlalchemy==2.0.36    # 原 2.0.30 → 2.0.36，因 Python 3.13 enum.Flag 行为变更不兼容
+apscheduler==3.10.4
+requests==2.32.3    # 原 2.31.0 → 2.32.3，因 nicegui 1.4.30 要求 requests >= 2.32.0
+python-dateutil==2.9.0
+qrcode==7.4.2
+plyer==2.1.0
