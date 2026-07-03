@@ -1,5 +1,6 @@
 {
-  "always_on_top": false,
+  "always_on_top": true,
   "auto_open_web": false,
-  "opacity": 0.88
+  "opacity": 0.88,
+  "city": "Ruian"
 }

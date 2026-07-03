@@ -103,6 +103,14 @@ class RnoteFile(Base):
     tags = Column(String(200), default="")                    # 额外标签，逗号分隔
 
 
+class Setting(Base):
+    """键值配置表 —— 存储插件开关等运行时配置"""
+    __tablename__ = "settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, default="")
+
+
 # ══════════════════════════════════════════════════════════════════
 # 初始化函数
 # ══════════════════════════════════════════════════════════════════

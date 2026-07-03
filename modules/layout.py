@@ -7,15 +7,41 @@ from nicegui import ui
 
 from utils.search_engine import search_all
 
-NAV_ITEMS = [
-    ("🏠", "首页", "/"),
-    ("📅", "日历日程", "/calendar"),
-    ("💰", "记账管理", "/finance"),
-    ("📖", "写日记", "/diary"),
-    ("📂", "Rnote 管理器", "/rnote"),
-    ("🧰", "小工具", "/gadgets"),
-    ("⚙️", "数据保险箱", "/settings"),
+# 核心菜单项（始终存在）
+_CORE_ITEMS = [
+    ("首页", "/"),
+    ("设置", "/settings"),
 ]
+
+# 动态菜单项（由插件加载器注入）
+_PLUGIN_ITEMS: list[tuple[str, str]] = []
+
+
+def set_menu_items(items: list[tuple[str, str]]):
+    """
+    由插件加载器调用，设置已启用插件的菜单项列表。
+
+    Args:
+        items: [(label, path), ...]
+    """
+    global _PLUGIN_ITEMS
+    _PLUGIN_ITEMS = list(items)
+
+
+def _get_menu_items() -> list[tuple[str, str]]:
+    """合并核心菜单和插件菜单，插件按名称排序后放在中间"""
+    core_paths = {p for _, p in _CORE_ITEMS}
+    # 过滤掉可能重复的项
+    plugin_items = [
+        (label, path) for label, path in _PLUGIN_ITEMS if path not in core_paths
+    ]
+    plugin_items.sort(key=lambda x: x[0])
+
+    # 顺序：首页 → 插件菜单 → 设置
+    result = [_CORE_ITEMS[0]]  # 首页
+    result.extend(plugin_items)
+    result.append(_CORE_ITEMS[1])  # 设置
+    return result
 
 
 def add_header():
@@ -23,17 +49,17 @@ def add_header():
     为当前页面添加：
     1. 顶部搜索头栏（汉堡菜单 + 标题 + 搜索框）
     2. 左侧滑出导航抽屉，包含所有页面链接
-    3. 全局搜索对话框（回车或点击 🔍 触发）
+    3. 全局搜索对话框（回车或点击搜索触发）
     """
     # ── 导航抽屉 ──────────────────────────────────────────
     drawer = ui.left_drawer(value=False, fixed=False).classes("bg-blue-50")
 
     with drawer:
         with ui.column().classes("p-4 gap-1 w-full"):
-            ui.label("🧰 My Life Toolbox").classes("text-h6 font-bold pb-2")
+            ui.label("My Life Toolbox").classes("text-h6 font-bold pb-2")
             ui.separator()
-            for icon, label, target in NAV_ITEMS:
-                ui.link(f"{icon}  {label}", target=target).classes(
+            for label, target in _get_menu_items():
+                ui.link(label, target=target).classes(
                     "no-underline text-base py-2 px-2 rounded hover:bg-blue-100 w-full block"
                 )
 
@@ -101,7 +127,7 @@ def add_header():
     def _navigate(url: str):
         """关闭搜索对话框并跳转到目标页面"""
         search_dialog.close()
-        ui.navigate(to=url)
+        ui.navigate.to(url)
 
     # ── 顶部头栏 ──────────────────────────────────────────
     with ui.row().classes(
@@ -109,7 +135,7 @@ def add_header():
     ):
         ui.button("☰", on_click=lambda: drawer.toggle()).props("flat dense round")
         with ui.row().classes("items-center gap-1"):
-            ui.link("🧰 MLT", target="/").classes(
+            ui.link("MLT", target="/").classes(
                 "text-h6 font-bold no-underline text-grey-9"
             )
         ui.space()

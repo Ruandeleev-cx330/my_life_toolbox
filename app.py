@@ -25,15 +25,20 @@ from core.database import init_db
 
 init_db()
 
-# ── 导入页面模块 —— 在模块级执行以注册所有 @ui.page 路由 ──────
-#     必须在 ui.run() 之前完成，因此在模块顶层导入
-import modules.calendar_feed  # noqa: E402  /calendar
+# ── 导入核心页面模块（始终加载，非插件）──────────────────────
 import modules.dashboard  # noqa: E402  /
-import modules.diary  # noqa: E402  /diary
-import modules.finance  # noqa: E402  /finance
-import modules.gadgets  # noqa: E402  /gadgets
-import modules.rnote_manager  # noqa: E402  /rnote
-import modules.settings  # noqa: E402  /settings
+import modules.settings   # noqa: E402  /settings
+
+# ── 插件系统：扫描并注册已启用的插件路由 ─────────────────────
+#     替代原有的逐个模块 import（finance / diary / calendar_feed / rnote_manager / gadgets）
+from plugins import plugin_loader
+
+plugin_loader.discover()
+plugin_loader.register_enabled()
+# 将动态菜单传递给布局模块
+import modules.layout as _layout
+
+_layout.set_menu_items(plugin_loader.get_menu_items())
 
 from core.scheduler import start_scheduler, stop_scheduler  # noqa: E402
 

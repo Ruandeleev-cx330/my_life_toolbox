@@ -8,6 +8,7 @@
 
 - [快速开始](#快速开始)
 - [项目架构](#项目架构)
+- [插件系统](#插件系统)
 - [桌面悬浮窗](#桌面悬浮窗)
   - [天气显示](#天气显示)
   - [今日待办](#今日待办)
@@ -23,7 +24,9 @@
   - [日记编辑器](#日记编辑器-diary)
   - [Rnote 笔记管理](#rnote-笔记管理-rnote)
   - [小工具](#小工具-gadgets)
-  - [数据保险箱](#数据保险箱-settings)
+  - [插件管理](#插件管理-adminplugins)
+  - [设置](#设置-settings)
+- [开机自启动](#开机自启动)
 - [系统托盘](#系统托盘)
 - [定时任务](#定时任务)
 - [全局搜索](#全局搜索)
@@ -103,6 +106,65 @@ python seed_test_data.py
 
 ---
 
+## 插件系统
+
+MLT 采用插件化架构，日记、记账、日历、Rnote、小工具等功能模块均为独立插件，可在 Web 管理页面按需启用/禁用。
+
+### 架构
+
+```
+plugins/
+├── __init__.py            # BasePlugin 基类 + PluginLoader
+├── finance_plugin.py      # 记账插件
+├── diary_plugin.py        # 日记插件
+├── calendar_plugin.py     # 日历日程插件
+├── rnote_plugin.py        # Rnote 笔记管理插件
+├── gadgets_plugin.py      # 小工具插件
+└── admin_plugin.py        # 插件管理页面
+```
+
+### BasePlugin 接口
+
+```python
+class BasePlugin(ABC):
+    name: str          # 唯一标识 (kebab-case)
+    title: str         # 菜单显示名称
+    version: str       # 版本号
+    author: str        # 作者
+    description: str   # 描述
+
+    def register(self)       # 注册 NiceGUI 路由（@ui.page）
+    def menu_item(self)      # 返回 (label, path) 菜单项
+    def on_enable(self)      # 启用回调
+    def on_disable(self)     # 禁用回调
+```
+
+### 编写新插件
+
+```python
+from plugins import BasePlugin
+
+class MyPlugin(BasePlugin):
+    name = "my-plugin"
+    title = "我的插件"
+    version = "1.0.0"
+    author = "Me"
+
+    def register(self):
+        from nicegui import ui
+
+        @ui.page("/my-plugin")
+        def my_page():
+            ui.label("Hello from plugin!")
+
+    def menu_item(self):
+        return ("我的插件", "/my-plugin")
+```
+
+将文件放入 `plugins/` 目录，启动时自动发现。
+
+---
+
 ## 桌面悬浮窗
 
 悬浮窗是 MLT 的**日常快速入口**，常驻桌面，提供即时信息查看和快捷操作。
@@ -135,7 +197,7 @@ python seed_test_data.py
 
 ```
 ┌──────────────────────┐
-│ 📋 待办: 3 项    ▶  │  ← 点击展开/收起
+│ 待办: 3 项       ▶  │  ← 点击展开/收起
 ├──────────────────────┤
 │ ☐ 🔴 完成联调        │  ← 展开后显示列表
 │ ☐ 🟡 整理笔记        │     可勾选完成
@@ -143,33 +205,37 @@ python seed_test_data.py
 └──────────────────────┘
 ```
 
-- 从 `todos` 表读取：`date_created == today` 且 `is_completed == False`
+- 从 `todos` 表读取：`due_date == today` 且 `is_completed == False`
 - 点击「待办: N 项」展开/收起列表
 - **勾选复选框** → 立即写入数据库，Web 面板端刷新后可同步看到
 - 优先级配色：🔴 高 / 🟡 中 / 🟢 低
+- 底部 **+ 待办** 按钮快速新建当天到期的待办
 
 ### 本机 IP
 
 ```
-┌──────────────────────┐
-│ 🖥 内网: 192.168.1.5 │  ← 点击切换内外网
-│              ⇄ 外网 📋│  ← 点击 📋 复制 IP
-└──────────────────────┘
+┌──────────────────────────┐
+│ 🖥 内网          → 外网  │  ← 点击切换内外网
+│                          │
+│ 192.168.3.126       [cp] │  ← 上行：IPv4（独立复制）
+│ 240e:393:3413:...    [cp] │  ← 下行：IPv6（wraplength 自动换行）
+└──────────────────────────┘
 ```
 
 - 点击 IP 区域**切换内网/外网**显示
-- 点击 📋 **复制当前 IP** 到剪贴板（1.5 秒后恢复图标）
-- 内网 IP：UDP 连接法获取（避免返回 127.0.0.1）
-- 外网 IP：依次尝试 ipify.org → httpbin.org → ipapi.co → ifconfig.me
+- 每行独立 **[cp]** 按钮，一键复制 v4 或 v6
+- IPv6 自动换行适配悬浮窗窄宽度
+- IPv4：UDP 连接法获取（避免返回 127.0.0.1）
+- IPv6：连接 Google DNS IPv6 地址获取，降级遍历网卡
 - 获取失败显示 `--`
 
 ### 快捷记账
 
-点击「＋ 记账」按钮弹出简易窗口：
+点击「+ 记账」按钮弹出简易窗口：
 
 ```
 ┌──────────────────────┐
-│      ＋ 快捷记账      │
+│      + 快捷记账       │
 │                      │
 │ 金额                  │
 │ ┌──────────────────┐ │
@@ -179,13 +245,18 @@ python seed_test_data.py
 │ ┌──────────────────┐ │
 │ │ 餐饮              │ │
 │ └──────────────────┘ │
+│ 备注（可选）           │
+│ ┌──────────────────┐ │
+│ │ 午餐外卖           │ │
+│ └──────────────────┘ │
 │          [取消] [保存]│
 └──────────────────────┘
 ```
 
 - 默认类型：`expense`（支出）
 - 默认分类：`餐饮`
-- 保存后**立即写入数据库**，悬浮窗待办和 Web 记账页面均可看到
+- 可选备注字段，用于消费详情记录，写入数据库供高频词统计
+- 保存后**立即写入数据库**
 
 ### 置顶开关
 
@@ -216,11 +287,12 @@ python seed_test_data.py
 
 | 菜单项 | 功能 |
 |--------|------|
-| 🖥 打开完整面板 | 打开 Web 面板 |
-| 📌 切换置顶状态 | 切换窗口是否置顶 |
-| ☐ 开机自动打开 Web | 勾选后每次启动自动打开浏览器 |
-| 🔄 立即刷新 | 立即刷新天气/IP/待办数据 |
-| ❌ 退出 | 退出整个程序 |
+| 打开完整面板 | 打开 Web 面板 |
+| 切换置顶状态 | 切换窗口是否置顶 |
+| ☐ 开机自启动 | 勾选后系统启动时自动运行 MLT |
+| ☐ 启动时自动打开 Web | 勾选后每次启动自动打开浏览器 |
+| 立即刷新 | 立即刷新天气/IP/待办数据 |
+| 退出 | 退出整个程序 |
 
 ---
 
@@ -370,10 +442,15 @@ Web 界面通过 NiceGUI (Quasar 组件库) 构建，提供完整的数据管理
 
 ### 小工具 `/gadgets`
 
-**🖥 本机 IP**：
+**🖥 本机 IP**（2×1 布局，每卡 v4/v6 双行）：
 
-- 内网 IP 卡片 + 公网 IP 卡片
-- 📋 一键复制按钮
+| 内网 IP | 公网 IP |
+|---------|---------|
+| v4 `192.168.x.x` [copy] | v4 `x.x.x.x` [copy] |
+| v6 `240e:...` [copy] | v6 `240e:...` [copy] |
+
+- 每行独立 copy 按钮
+- 支持 IPv4 + IPv6 双栈
 
 **📱 二维码生成器**：
 
@@ -387,7 +464,25 @@ Web 界面通过 NiceGUI (Quasar 组件库) 构建，提供完整的数据管理
 - 可选包含数字、符号
 - 一键生成 + 📋 复制
 
-### 数据保险箱 `/settings`
+### 插件管理 `/admin/plugins`
+
+- 列表展示所有已加载插件（名称 / 版本 / 作者 / 描述）
+- 开关按钮启用/禁用插件
+- 禁用后路由不可访问、侧边栏菜单隐藏
+- 状态持久化到数据库 `settings` 表
+- 需重启应用生效
+
+### 设置 `/settings`
+
+**开机自启动**：
+
+- 开关控制 Windows 开机时自动启动 MLT
+- 在 `Startup` 目录创建 `MLT_autostart.bat`（使用 `pythonw.exe` 无窗口运行）
+
+**天气设置**：
+
+- 输入城市英文名（如 `Shanghai`），保存到 `config.json`
+- 重启后悬浮窗天气显示对应城市
 
 **📤 一键导出**：
 
@@ -405,6 +500,24 @@ Web 界面通过 NiceGUI (Quasar 组件库) 构建，提供完整的数据管理
 - 每周日凌晨 03:00 自动导出 JSON 到 `data/auto_backup/`
 - 自动清理超过 30 天的旧备份
 - 文件名格式：`backup_YYYYMMDD.json`
+
+**清空数据**：
+
+- 二次确认对话框，删除全部四张表数据
+- 建议先导出备份
+- 不可撤销操作
+
+---
+
+## 开机自启动
+
+启用后，Windows 启动时自动在后台运行 MLT（悬浮窗 + Web 服务器静默启动）。
+
+| 特性 | 说明 |
+|------|------|
+| 实现方式 | Startup 目录 + `.bat` 脚本 + `pythonw.exe`（无控制台黑窗） |
+| 管理入口 | Web 设置页 + 悬浮窗右键菜单 |
+| 跨平台 | 当前仅 Windows（macOS LaunchAgent / Linux autostart 预留接口） |
 
 ---
 
@@ -476,6 +589,7 @@ Web 界面通过 NiceGUI (Quasar 组件库) 构建，提供完整的数据管理
 | `always_on_top` | bool | `true` | 悬浮窗是否始终置顶 |
 | `auto_open_web` | bool | `false` | 启动时是否自动打开 Web 面板 |
 | `opacity` | float | `0.88` | 悬浮窗不透明度（0.0 ~ 1.0） |
+| `city` | string | `"Beijing"` | 天气城市（英文名，如 `Shanghai`、`Tokyo`） |
 
 **修改方式**：
 
@@ -538,6 +652,17 @@ Web 界面通过 NiceGUI (Quasar 组件库) 构建，提供完整的数据管理
 | `classified_date` | DATE | 归类日期 |
 | `tags` | VARCHAR(200) | 额外标签（逗号分隔） |
 
+### settings（键值配置）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `key` | VARCHAR(100) PK | 配置键名 |
+| `value` | TEXT | 配置值 |
+
+示例记录：
+- `plugin.finance.enabled` = `"true"`
+- `plugin.diary.enabled` = `"false"`
+
 ---
 
 ## 工具模块
@@ -555,18 +680,37 @@ weather = fetch_weather(timeout=5.0)   # 自定义超时
 - 返回格式：`☀️ +25°C`
 - 超时或异常返回 `"天气获取中"`
 
-### `utils/ip_tool.py` —— IP 查询
+### `utils/ip_tool.py` —— IP 查询（IPv4 + IPv6）
 
 ```python
-from utils.ip_tool import get_internal_ip, get_external_ip
+from utils.ip_tool import (
+    get_internal_ipv4, get_external_ipv4,
+    get_internal_ipv6, get_external_ipv6,
+)
 
-local = get_internal_ip()     # 内网 IP（UDP 连接法）
-public = get_external_ip()    # 公网 IP（多服务降级）
+local_v4 = get_internal_ipv4()   # 内网 IPv4（UDP → 8.8.8.8）
+local_v6 = get_internal_ipv6()   # 内网 IPv6（连接 Google DNS IPv6 / 遍历网卡）
+public_v4 = get_external_ipv4()  # 公网 IPv4（ipify.org 等）
+public_v6 = get_external_ipv6()  # 公网 IPv6（api6.ipify.org 等）
 ```
 
-- 内网：通过连接 `8.8.8.8:80` 获取本机 IP，避免返回 127.0.0.1
-- 公网：依次尝试 ipify.org → httpbin.org → ipapi.co → ifconfig.me
-- 全部失败返回 `"获取失败"`
+- IPv4：UDP 连接法 + 多服务降级（ipify → httpbin → ipapi → ifconfig）
+- IPv6：Google DNS IPv6 连接法，降级遍历网卡全局单播地址；公网使用 IPv6 专用 API
+- IPv6 不可用时返回 `"IPv6 不可用"`
+- 兼容旧 API：`get_internal_ip()` / `get_external_ip()` → 等同 v4 版本
+
+### `utils/autostart.py` —— 开机自启动
+
+```python
+from utils.autostart import is_autostart_enabled, set_autostart
+
+set_autostart(True)             # 启用开机自启动
+set_autostart(False)            # 禁用
+print(is_autostart_enabled())   # 查询状态
+```
+
+- Windows：在 `Startup` 目录创建 `.bat` 脚本，使用 `pythonw.exe` 无窗口启动
+- macOS / Linux：预留接口
 
 ### `utils/notifier.py` —— 系统通知
 
@@ -593,39 +737,43 @@ results = search_all("火锅")
 
 ```
 my_life_toolbox/
-├── app.py                      # 主入口（悬浮窗优先 + NiceGUI 后台）
-├── config.json                 # 用户配置（置顶/自动打开Web/透明度）
+├── app.py                      # 主入口（悬浮窗优先 + 插件加载 + NiceGUI 后台）
+├── config.json                 # 用户配置（置顶/自动Web/透明度/城市）
 ├── README.md                   # 本文件
-├── CLAUDE.md                   # 项目设计文档
 ├── seed_test_data.py           # 测试数据生成脚本
-├── requirements.txt            # 依赖清单
 │
 ├── core/                       # 核心模块
-│   ├── __init__.py
-│   ├── database.py             # ORM 模型定义 + 数据库初始化
+│   ├── database.py             # ORM 模型（含 Setting 键值表）
 │   └── scheduler.py            # 定时任务引擎
 │
-├── modules/                    # Web 页面模块（NiceGUI @ui.page）
-│   ├── __init__.py
-│   ├── layout.py               # 共享布局（导航抽屉 + 搜索头栏）
+├── plugins/                    # 插件系统
+│   ├── __init__.py             # BasePlugin + PluginLoader
+│   ├── finance_plugin.py       # 记账插件
+│   ├── diary_plugin.py         # 日记插件
+│   ├── calendar_plugin.py      # 日历日程插件
+│   ├── rnote_plugin.py         # Rnote 管理插件
+│   ├── gadgets_plugin.py       # 小工具插件
+│   └── admin_plugin.py         # 插件管理页面 /admin/plugins
+│
+├── modules/                    # Web 页面模块（@ui.page 路由）
+│   ├── layout.py               # 共享布局（动态菜单注入）
 │   ├── dashboard.py            # 首页仪表盘  /
 │   ├── calendar_feed.py        # 日历日程    /calendar
 │   ├── finance.py              # 记账管理    /finance
 │   ├── diary.py                # 日记编辑器  /diary
 │   ├── rnote_manager.py        # Rnote 管理  /rnote
 │   ├── gadgets.py              # 小工具      /gadgets
-│   └── settings.py             # 数据备份    /settings
+│   └── settings.py             # 设置        /settings
 │
 ├── utils/                      # 工具模块
-│   ├── __init__.py
 │   ├── weather.py              # wttr.in 天气查询
-│   ├── ip_tool.py              # 内网/公网 IP 查询
+│   ├── ip_tool.py              # IPv4 + IPv6 双栈 IP 查询
 │   ├── notifier.py             # 系统原生通知
-│   └── search_engine.py        # 跨表全文搜索
+│   ├── search_engine.py        # 跨表全文搜索
+│   └── autostart.py            # 开机自启动管理
 │
 ├── widget/                     # 桌面悬浮窗
-│   ├── __init__.py
-│   └── floating_window.py      # tkinter 悬浮窗主类
+│   └── floating_window.py      # tkinter 悬浮窗（Win32 去边框 + 置顶）
 │
 ├── data/                       # 运行时数据（自动创建）
 │   ├── toolbox.db              # SQLite 数据库

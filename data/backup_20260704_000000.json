@@ -1,0 +1,173 @@
+{
+  "transactions": [
+    {
+      "id": 1,
+      "date": "2026-07-03",
+      "type": "expense",
+      "category": "餐饮",
+      "amount": 36.5,
+      "note": "午餐",
+      "created_at": "2026-07-02T19:20:27.460604"
+    },
+    {
+      "id": 2,
+      "date": "2026-07-03",
+      "type": "income",
+      "category": "工资",
+      "amount": 500.0,
+      "note": "",
+      "created_at": "2026-07-02T19:20:27.460608"
+    },
+    {
+      "id": 3,
+      "date": "2026-07-02",
+      "type": "expense",
+      "category": "交通",
+      "amount": 2.0,
+      "note": "地铁",
+      "created_at": "2026-07-02T19:20:27.460609"
+    },
+    {
+      "id": 4,
+      "date": "2026-07-02",
+      "type": "income",
+      "category": "工资",
+      "amount": 99999.0,
+      "note": "家教",
+      "created_at": "2026-07-02T20:25:32.155226"
+    },
+    {
+      "id": 5,
+      "date": "2026-07-02",
+      "type": "expense",
+      "category": "个税",
+      "amount": 10000.0,
+      "note": "",
+      "created_at": "2026-07-02T20:25:59.718520"
+    },
+    {
+      "id": 6,
+      "date": "2026-07-03",
+      "type": "expense",
+      "category": "餐饮",
+      "amount": 12.0,
+      "note": "悬浮窗快捷记账",
+      "created_at": "2026-07-02T21:39:21.153811"
+    },
+    {
+      "id": 7,
+      "date": "2026-07-03",
+      "type": "expense",
+      "category": "餐饮",
+      "amount": 20.0,
+      "note": "悬浮窗快捷记账",
+      "created_at": "2026-07-02T22:25:08.452731"
+    }
+  ],
+  "todos": [
+    {
+      "id": 1,
+      "title": "完成 calendar_feed 联调",
+      "description": "",
+      "due_date": "2026-07-03",
+      "priority": 1,
+      "is_completed": true,
+      "date_created": "2026-07-03"
+    },
+    {
+      "id": 2,
+      "title": "整理本周笔记",
+      "description": "",
+      "due_date": "2026-07-03",
+      "priority": 2,
+      "is_completed": true,
+      "date_created": "2026-07-03"
+    },
+    {
+      "id": 3,
+      "title": "红十字 瑞中军训",
+      "description": "",
+      "due_date": "2026-07-10",
+      "priority": 2,
+      "is_completed": false,
+      "date_created": "2026-07-04"
+    },
+    {
+      "id": 4,
+      "title": "红十字 瑞中军训",
+      "description": "",
+      "due_date": "2026-07-10",
+      "priority": 1,
+      "is_completed": false,
+      "date_created": "2026-07-04"
+    },
+    {
+      "id": 5,
+      "title": "红十字 瑞中军训",
+      "description": "",
+      "due_date": "2026-07-10",
+      "priority": 1,
+      "is_completed": false,
+      "date_created": "2026-07-04"
+    },
+    {
+      "id": 6,
+      "title": "给初升高数学家教",
+      "description": "",
+      "due_date": "2026-07-06",
+      "priority": 1,
+      "is_completed": false,
+      "date_created": "2026-07-04"
+    }
+  ],
+  "diaries": [
+    {
+      "id": 1,
+      "date": "2026-07-03",
+      "content": "api还挺好用的",
+      "mood": "happy",
+      "weather_override": "nia na yi",
+      "updated_at": "2026-07-02T20:12:42.920723"
+    },
+    {
+      "id": 2,
+      "date": "2026-07-02",
+      "content": "昨天写了一篇日记",
+      "mood": "neutral",
+      "weather_override": null,
+      "updated_at": "2026-07-02T19:20:27.452090"
+    },
+    {
+      "id": 3,
+      "date": "2026-07-04",
+      "content": "应该没那么多bug了吧",
+      "mood": "neutral",
+      "weather_override": "再不出dsv4正式版我就要哭了",
+      "updated_at": "2026-07-02T20:20:27.738262"
+    }
+  ],
+  "rnote_files": [
+    {
+      "id": 1,
+      "original_path": "C:\\Users\\lenovo\\Documents\\Notes\\test\\数学笔记.rnote",
+      "filename": "数学笔记.rnote",
+      "target_category": "数学",
+      "target_path": "C:\\Users\\lenovo\\Documents\\Notes\\分类后的笔记\\数学\\数学笔记.rnote",
+      "file_size": 128,
+      "last_modified": "2026-07-03T03:28:51.392904",
+      "classified_date": "2026-07-03",
+      "tags": ""
+    },
+    {
+      "id": 2,
+      "original_path": "C:\\Users\\lenovo\\Documents\\Notes\\test\\物理笔记.rnote",
+      "filename": "物理笔记.rnote",
+      "target_category": "物理",
+      "target_path": "C:\\Users\\lenovo\\Documents\\Notes\\分类后的笔记\\物理\\物理笔记.rnote",
+      "file_size": 128,
+      "last_modified": "2026-07-03T03:29:07.307192",
+      "classified_date": "2026-07-03",
+      "tags": ""
+    }
+  ]
+}

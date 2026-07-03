@@ -13,7 +13,12 @@ import qrcode
 from nicegui import ui
 
 from modules.layout import add_header
-from utils.ip_tool import get_external_ip, get_internal_ip
+from utils.ip_tool import (
+    get_external_ipv4,
+    get_external_ipv6,
+    get_internal_ipv4,
+    get_internal_ipv6,
+)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -60,35 +65,31 @@ def gadgets_page():
     ui.separator()
 
     # ══════════════════════════════════════════════════════════
-    # 第一行：IP 信息
+    # IP 信息（内网 + 公网，各显 v4/v6）
     # ══════════════════════════════════════════════════════════
+
+    v4_local = get_internal_ipv4()
+    v6_local = get_internal_ipv6()
+    v4_public = get_external_ipv4()
+    v6_public = get_external_ipv6()
+
+    def _ip_card(title: str, v4: str, v6: str):
+        with ui.card().classes("flex-1"):
+            ui.label(title).classes("text-h6 font-bold pb-2")
+            # v4 行
+            with ui.row().classes("items-center gap-2 pb-1"):
+                ui.label("v4").classes("text-caption font-bold text-blue-6 w-6")
+                ui.label(v4).classes("font-mono text-blue-6")
+                ui.button("copy", on_click=lambda: _copy_and_notify(v4)).props("flat dense size=sm")
+            # v6 行
+            with ui.row().classes("items-center gap-2"):
+                ui.label("v6").classes("text-caption font-bold text-purple-6 w-6")
+                ui.label(v6).classes("font-mono text-purple-6 text-caption")
+                ui.button("copy", on_click=lambda: _copy_and_notify(v6)).props("flat dense size=sm")
+
     with ui.row().classes("gap-4 px-3 pt-2 w-full"):
-        # 内网 IP
-        with ui.card().classes("flex-1"):
-            ui.label("🖥 本机内网 IP").classes("text-h6 font-bold pb-2")
-            local_ip = get_internal_ip()
-            with ui.row().classes("items-center gap-2"):
-                ui.label(local_ip).classes("text-h5 font-mono text-blue-6")
-                ui.button(
-                    "📋",
-                    on_click=lambda ip=local_ip: _copy_and_notify(ip),
-                ).props("flat dense size=sm")
-
-        # 公网 IP
-        with ui.card().classes("flex-1"):
-            ui.label("🌐 公网 IP").classes("text-h6 font-bold pb-2")
-            public_ip = get_external_ip()
-            with ui.row().classes("items-center gap-2"):
-                ui.label(public_ip).classes("text-h5 font-mono text-purple-6")
-                ui.button(
-                    "📋",
-                    on_click=lambda ip=public_ip: _copy_and_notify(ip),
-                ).props("flat dense size=sm")
-
-        # 快捷刷新
-        with ui.card().classes("flex-0"):
-            ui.label("").classes("text-h6 pb-2")
-            ui.button("🔄 刷新", on_click=lambda: ui.notify("刷新页面即可重新获取 IP")).props("flat")
+        _ip_card("内网 IP", v4_local, v6_local)
+        _ip_card("公网 IP", v4_public, v6_public)
 
     # ══════════════════════════════════════════════════════════
     # 第二行：二维码生成器

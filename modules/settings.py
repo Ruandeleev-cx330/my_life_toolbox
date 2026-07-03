@@ -119,11 +119,72 @@ def settings_page():
 
     # ── 面包屑 ──────────────────────────────────────────────
     with ui.row().classes("items-center gap-4 px-3 pt-2 pb-1"):
-        ui.link("🏠 首页", target="/").classes("text-grey-6 no-underline")
-        ui.label("›").classes("text-grey-6")
-        ui.label("⚙️ 数据保险箱").classes("text-h6 font-bold")
+        ui.link("首页", target="/").classes("text-grey-6 no-underline")
+        ui.label(">").classes("text-grey-6")
+        ui.label("设置").classes("text-h6 font-bold")
 
     ui.separator()
+
+    # ══════════════════════════════════════════════════════════
+    # 天气城市设置
+    # ══════════════════════════════════════════════════════════
+    from pathlib import Path as _Path
+    _config_path = _Path(__file__).resolve().parent.parent / "config.json"
+
+    def _load_config():
+        if _config_path.exists():
+            return json.loads(_config_path.read_text(encoding="utf-8"))
+        return {}
+
+    def _save_config(cfg: dict):
+        _config_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    current_cfg = _load_config()
+
+    # ── 开机自启动 ────────────────────────────────────────────
+    from utils.autostart import is_autostart_enabled, set_autostart
+
+    with ui.card().classes("w-full mx-3 mt-3"):
+        ui.label("开机自启动").classes("text-h6 font-bold pb-2")
+        ui.label(
+            "启用后，系统启动时自动在后台运行 MLT（悬浮窗 + Web 服务）。"
+        ).classes("text-grey-6 pb-3")
+
+        auto_switch = ui.switch(
+            value=is_autostart_enabled(),
+            on_change=lambda e: _on_autostart(e.value),
+        )
+
+        def _on_autostart(enabled: bool):
+            ok = set_autostart(enabled)
+            if ok:
+                ui.notify(f"开机自启动已{'启用' if enabled else '禁用'}")
+            else:
+                ui.notify("操作失败，请检查权限", type="error")
+                auto_switch.value = not enabled  # 回滚开关
+
+        with ui.row().classes("items-center gap-2"):
+            auto_switch
+            ui.label("开机自动启动 MLT").classes("text-grey-7")
+
+    # ── 天气设置 ──────────────────────────────────────────────
+
+    with ui.card().classes("w-full mx-3 mt-3"):
+        ui.label("天气设置").classes("text-h6 font-bold pb-2")
+        ui.label("设置天气显示的城市（英文名，如 Beijing、Shanghai、Tokyo）").classes("text-grey-6 pb-3")
+
+        with ui.row().classes("items-end gap-3"):
+            city_input = ui.input(
+                label="城市", value=current_cfg.get("city", "Beijing"),
+            ).classes("w-48")
+
+            def _save_city():
+                cfg = _load_config()
+                cfg["city"] = city_input.value.strip() or "Beijing"
+                _save_config(cfg)
+                ui.notify(f"城市已更新为 {cfg['city']}，重启后生效")
+
+            ui.button("保存", on_click=_save_city).props("color=primary")
 
     # ══════════════════════════════════════════════════════════
     # 一键导出
@@ -221,8 +282,8 @@ def settings_page():
     # ══════════════════════════════════════════════════════════
     # 自动备份说明
     # ══════════════════════════════════════════════════════════
-    with ui.card().classes("w-full mx-3 mt-3 mb-4"):
-        ui.label("🤖 自动备份").classes("text-h6 font-bold pb-2")
+    with ui.card().classes("w-full mx-3 mt-3"):
+        ui.label("自动备份").classes("text-h6 font-bold pb-2")
         ui.label(
             "系统已配置每周日凌晨 3:00 自动在以下目录生成 JSON 备份："
         ).classes("text-grey-6 pb-1")
@@ -232,3 +293,44 @@ def settings_page():
         ui.label(
             "无需手动操作，系统会在后台静默执行。备份文件命名格式：backup_YYYYMMDD.json"
         ).classes("text-caption text-grey-6 pt-2")
+
+    # ══════════════════════════════════════════════════════════
+    # 清空全部数据
+    # ══════════════════════════════════════════════════════════
+    with ui.card().classes("w-full mx-3 mt-3 mb-4"):
+        ui.label("清空数据").classes("text-h6 font-bold pb-2")
+        ui.label(
+            "删除数据库中的所有记录（记账、待办、日记、笔记分类），此操作不可撤销。"
+        ).classes("text-grey-6 pb-3")
+
+        def _clear_all():
+            with ui.dialog() as dlg:
+                with ui.card().style("width: 420px; max-width: 90vw;"):
+                    ui.label("确认清空全部数据?").classes("text-h6 font-bold pb-2")
+                    ui.label(
+                        "即将删除数据库中所有记账、待办、日记和笔记分类记录。\n"
+                        "建议先导出备份。此操作不可撤销。"
+                    ).classes("text-grey-7 pb-3")
+
+                    def _do_clear():
+                        s = SessionLocal()
+                        try:
+                            s.query(Transaction).delete()
+                            s.query(Todo).delete()
+                            s.query(Diary).delete()
+                            s.query(RnoteFile).delete()
+                            s.commit()
+                            ui.notify("全部数据已清空", type="positive")
+                        except Exception as ex:
+                            s.rollback()
+                            ui.notify(f"清空失败: {ex}", type="error")
+                        finally:
+                            s.close()
+                        dlg.close()
+
+                    with ui.row().classes("gap-2 justify-end w-full"):
+                        ui.button("取消", on_click=dlg.close).props("flat")
+                        ui.button("确认清空", on_click=_do_clear).props("color=negative")
+            dlg.open()
+
+        ui.button("清空全部数据", on_click=_clear_all).props("color=negative")
