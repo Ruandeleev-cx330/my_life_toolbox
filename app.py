@@ -12,6 +12,7 @@ My Life Toolbox —— 主入口（悬浮窗优先启动）
 用法：python app.py
 """
 
+import socket
 import atexit
 import threading
 import webbrowser
@@ -45,7 +46,14 @@ from core.scheduler import start_scheduler, stop_scheduler  # noqa: E402
 # ── 常量 ────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
 NICE_HOST = "127.0.0.1"
-NICE_PORT = 18520
+# NICE_PORT = 18520 改为系统分配端口
+
+# ── 系统分配空闲端口 ──────────────────────────────────────────────
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind(('localhost', 0))
+_, NICE_PORT = sock.getsockname()
+sock.close()
+
 NICE_URL = f"http://{NICE_HOST}:{NICE_PORT}"
 
 # 保存原始 webbrowser.open —— _run_nicegui_server 会 monkey-patch 它，
@@ -181,6 +189,7 @@ def main():
         config=config,
         on_open_web=_on_open_web,
         on_quit=_on_quit,
+        port=NICE_PORT,
     )
     app_ref["instance"] = app
 

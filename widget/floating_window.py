@@ -134,10 +134,12 @@ class FloatingWindow:
         config: dict,
         on_open_web: Callable[[], None],
         on_quit: Callable[[], None],
+        port: int | None = None,
     ):
         self.config = config
         self.on_open_web = on_open_web
         self.on_quit = on_quit
+        self.port = port
 
         # 展开状态
         self._todos_expanded = False
@@ -248,7 +250,7 @@ class FloatingWindow:
         # 标题（可拖拽）
         self._title_label = tk.Label(
             self._title_bar,
-            text="MLT",
+            text=f"MLT : {self.port}",
             fg=FG_PRIMARY,
             bg=BG_DARK,
             font=("Segoe UI", 10, "bold"),
