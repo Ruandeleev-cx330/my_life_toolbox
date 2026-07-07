@@ -12,7 +12,12 @@ My Life Toolbox —— 主入口（悬浮窗优先启动）
 用法：python app.py
 """
 
-import socket
+import socket,sys,os
+
+if not sys.stdout or not sys.stdout.isatty():
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+
 import atexit
 import threading
 import webbrowser
